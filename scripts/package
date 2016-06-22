@@ -2,7 +2,7 @@
 
 cd $(dirname $0)/..
 
-CONTENT=$(</proc/sys/kernel/random/uuid)
+CONTENT=$(uuidgen)
 
 rm -rf dist/artifacts
 
