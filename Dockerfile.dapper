@@ -1,15 +1,36 @@
-FROM golang:1.6
-RUN go get github.com/imikushin/trash
+FROM alpine:3.4
+# FROM arm=armhf/alpine:3.4
+
+ARG DAPPER_HOST_ARCH
+ENV HOST_ARCH=${DAPPER_HOST_ARCH} ARCH=${DAPPER_HOST_ARCH}
+
+RUN apk -U add bash gcc musl-dev go go-tools git perl linux-headers openssl util-linux
+
+ENV GOPATH=/go PATH=/go/bin:${PATH}
+
+
+RUN rm -f /bin/sh && ln -s /bin/bash /bin/sh
+
+ENV DOCKER_URL_amd64=https://get.docker.com/builds/Linux/x86_64/docker-1.10.3
+ENV DOCKER_URL_arm=https://github.com/rancher/docker/releases/download/v1.10.3-ros1/docker-1.10.3_arm
+ENV DOCKER_URL DOCKER_URL_${ARCH}
+
+RUN apk add curl wget ca-certificates socat
+RUN wget -O - ${!DOCKER_URL} > /usr/bin/docker && chmod +x /usr/bin/docker
+
+RUN go get github.com/rancher/trash
 RUN go get github.com/golang/lint/golint
-RUN curl -sL https://get.docker.com/builds/Linux/x86_64/docker-1.9.1 > /usr/bin/docker && \
-    chmod +x /usr/bin/docker
-ENV PATH /go/bin:$PATH
+
 ENV DAPPER_SOURCE /go/src/github.com/rancher/rancher-metadata
-ENV DAPPER_OUTPUT bin dist
+ENV DAPPER_OUTPUT ./bin ./dist
 ENV DAPPER_DOCKER_SOCKET true
+ENV DAPPER_RUN_ARGS --net=host --uts=host
 ENV DAPPER_ENV TAG REPO
-ENV GO15VENDOREXPERIMENT 1
+
+ENV SHELL /bin/bash
 ENV TRASH_CACHE ${DAPPER_SOURCE}/.trash-cache
+
 WORKDIR ${DAPPER_SOURCE}
+
 ENTRYPOINT ["./scripts/entry"]
 CMD ["ci"]
